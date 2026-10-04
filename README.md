@@ -29,6 +29,8 @@ npm start            # ② 保持本地服务运行：用面板期间要一直�
 
 然后打开文档 → **插入 → 加载项 → 开发者加载项 → 添加**（每个文件做一次）。
 
+> 不想用面板时总开着本地服务？可以把面板托管到 GitHub Pages（纯静态、免服务），见下文「部署到 GitHub Pages」。
+
 **开发调试（可选）**：`debug` 系列是官方 `office-addin-debugging` 的一键流程，等于把上面两步外加"打开 Office"合在一起：
 
 ```bash
@@ -54,7 +56,46 @@ Office 加载项是**文档级**装载的：注册只保证它在每个文档的
 
 > **为什么不能「打开任意 PPT 就自动有插件」？** 按官方定义，autoopen 是文档级机制，必须逐文件写入引用（见 [Automatically open a task pane with a document](https://learn.microsoft.com/zh-cn/office/dev/add-ins/develop/automatically-open-a-task-pane-with-a-document)）。对"任意文档自动运行"只有 Microsoft 365 管理员在管理中心**集中部署**（事件激活）才支持，且事件激活被限制为不能弹出任务窗格 UI；Marketplace 分发的加载项也不支持 autoopen。所以本地开发版的正确姿势就是：**每个文件插入一次，之后一直自动展开**。
 
-面板内容依赖本地服务常开（否则按钮在、面板打不开）：双击 `scripts/start-server.vbs` 可后台无窗口启动；把它放进 Windows「启动」文件夹（`Win+R` 输入 `shell:startup`）即可开机自启。
+面板内容依赖本地服务常开（否则按钮在、面板打不开）：双击 `scripts/start-server.vbs` 可后台无窗口启动；把它放进 Windows「启动」文件夹（`Win+R` 输入 `shell:startup`）即可开机自启。若改用下节的 GitHub Pages 托管，则完全不需要本地服务。
+
+## 部署到 GitHub Pages（免本地服务）
+
+任务窗格是**纯静态页面**（无后端，数据只存在文档里或浏览器本地），因此可以不依赖 `npm start`，直接托管到 GitHub Pages：
+
+- 用面板时不用再开本地服务，任何能联网、注册过加载项的电脑都能直接打开；
+- GitHub Pages 自带 HTTPS，满足 Office 加载项的要求；
+- 数据不经过 GitHub——版本仍保存在文档自定义设置 / 本机浏览器存储里。
+
+**启用 Pages**
+
+1. 把代码推到 GitHub 公开仓库（免费账号的 Pages 仅支持公开仓库）。
+2. 仓库 **Settings → Pages → Source 选 `Deploy from a branch` → Branch 选 `main`、文件夹 `/ (root)` → Save**。
+3. 等 1~2 分钟，浏览器打开 `https://<用户名>.github.io/<仓库名>/src/taskpane/taskpane.html` 验证：没有 Office 宿主时功能按钮不可用，页面能正常渲染即成功。
+
+**换成发布版清单**
+
+把 `manifest.xml` 里 10 处 `https://localhost:3000` 全局替换为 `https://<用户名>.github.io/<仓库名>`，并把 `SupportUrl` 一行改为仓库地址（VS Code / 记事本里「全部替换」即可）：
+
+```xml
+<SupportUrl DefaultValue="https://github.com/<用户名>/<仓库名>"/>
+```
+
+然后重新注册，并完全重启 Office：
+
+```bash
+npm run register
+```
+
+想切回本地开发版：`git checkout manifest.xml` 后再 register 一次。本仓库的现成例子：面板地址 `https://q0-dev.github.io/ppt-md-sync`，支持页 `https://github.com/q0-dev/ppt-md-sync`。
+
+**使用与更新**
+
+- 以后每次 `git push`，Pages 都会自动重新发布；页面带 CDN 缓存（最多约 10 分钟），想立刻生效可右键面板「重新加载」。
+- 只改面板内容不需要重新 register，只有改 `manifest.xml`（例如换域名）才需要。
+- 装载方式不变：每个文档在加载项对话框里「插入」一次，之后打开自动展开。
+- 别的电脑上使用：把改好地址的 `manifest.xml` 发过去，用 `npx office-addin-dev-settings register manifest.xml` 注册一次即可（需 Node.js）。
+
+> 根目录的 `.nojekyll` 让 Pages 跳过 Jekyll、原样发布全部文件，请保留。
 
 ## 使用
 
@@ -87,6 +128,7 @@ npm run validate  # 用微软官方服务校验 manifest.xml（需要联网）
 
 ```
 manifest.xml                 # 三合一加载项清单（开发期 URL 指向本地服务）
+.nojekyll                    # 供 GitHub Pages 原样发布（跳过 Jekyll）
 src/
   commands/commands.html     # 功能命令页（VersionOverrides 必需的 FunctionFile）
   taskpane/
@@ -111,7 +153,8 @@ tests/                       # node:test 单元测试
 
 - **注册后在加载项列表里找不到它**：确认 `npm run register` 没有报错，且没有执行过 `npm run debug:stop` / `npm run unregister`；然后完全重启 Office。
 - **对话框能看见，但打开文档没出现按钮**：正常——注册只负责"可见"，还需要在加载项对话框里插入一次（见上文）。
-- **任务窗格打不开 / 一直转圈**：本地服务没在跑。执行 `npm start` 或双击 `scripts/start-server.vbs`。
+- **任务窗格打不开 / 一直转圈**：本地服务没在跑。执行 `npm start` 或双击 `scripts/start-server.vbs`（GitHub Pages 版与服务无关：检查网络后右键面板「重新加载」）。
+- **Pages 上代码更新了，面板还是旧的**：CDN 缓存，最多约 10 分钟；右键面板「重新加载」可立即拉取最新页面。
 - **保存过文件，下次打开仍不自动展开面板**：勾选设置里的「打开此文件时自动展开面板」，保存文件后再重开；该开关按文件生效。
 - **面板提示证书不受信任**：首次运行 `npm run debug` 会自动安装并信任本地开发证书；若曾拒绝，执行 `npx office-addin-dev-certs install` 重新安装。
 - **端口 3000 被占用**：`scripts/serve.mjs` 支持 `PORT` 环境变量（默认 3000）；换端口需同步改 `manifest.xml` 里的 `https://localhost:3000` 与 `package.json` 的 `dev_server_port`。
