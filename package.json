@@ -1,0 +1,44 @@
+{
+  "name": "md-note-sync",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Office 加载项：Markdown 待办 + 轻量版本记录（Word / Excel / PowerPoint）",
+  "keywords": [
+    "office-addin",
+    "word",
+    "excel",
+    "powerpoint",
+    "markdown",
+    "todo",
+    "taskpane"
+  ],
+  "author": "q0-dev",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node scripts/serve.mjs",
+    "dev-server": "node scripts/serve.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "debug": "office-addin-debugging start manifest.xml desktop --app powerpoint",
+    "debug:word": "office-addin-debugging start manifest.xml desktop --app word",
+    "debug:excel": "office-addin-debugging start manifest.xml desktop --app excel",
+    "debug:stop": "office-addin-debugging stop manifest.xml",
+    "register": "office-addin-dev-settings register manifest.xml",
+    "unregister": "office-addin-dev-settings unregister manifest.xml",
+    "validate": "office-addin-manifest validate manifest.xml"
+  },
+  "devDependencies": {
+    "office-addin-dev-certs": "latest",
+    "office-addin-debugging": "latest",
+    "office-addin-dev-settings": "^4.0.1",
+    "office-addin-manifest": "latest"
+  },
+  "config": {
+    "app_to_debug": "powerpoint",
+    "app_type_to_debug": "desktop",
+    "dev_server_port": 3000
+  }
+}

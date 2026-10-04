@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MD 待办 · 版本记录</title>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232f6df6'/%3E%3Cpath d='M9 16.5l4.5 4.5L23 11' fill='none' stroke='white' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="css/taskpane.css" />
+</head>
+<body data-tab="notes">
+  <header class="app-header">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">
+        <svg viewBox="0 0 32 32">
+          <defs>
+            <linearGradient id="logo-g" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#2f6df6"/>
+              <stop offset="1" stop-color="#7b4dff"/>
+            </linearGradient>
+          </defs>
+          <rect width="32" height="32" rx="7" fill="url(#logo-g)"/>
+          <path d="M9 16.5l4.5 4.5L23 11" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+      <div class="titles">
+        <h1>MD 待办</h1>
+        <span id="hostBadge" class="badge">独立窗口</span>
+      </div>
+    </div>
+    <button id="btnSettings" class="icon-btn" title="设置" aria-label="设置">⚙</button>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="notes">笔记</button>
+    <button class="tab" data-tab="history">历史 <span id="verCount" class="pill">0</span></button>
+  </nav>
+
+  <main class="content">
+    <!-- 笔记 -->
+    <section id="viewNotes" class="view active">
+      <div class="quick-add">
+        <input id="quickInput" type="text" placeholder="随手记一条…（回车添加为待办）" autocomplete="off" />
+        <button id="quickTodo" class="ghost" title="添加为待办">＋待办</button>
+        <button id="quickDone" class="ghost" title="添加为已完成">✓完成</button>
+      </div>
+
+      <div class="editor-bar">
+        <div class="seg">
+          <button id="modeEdit" class="seg-btn active">编辑</button>
+          <button id="modePreview" class="seg-btn">预览</button>
+        </div>
+        <div class="tools">
+          <button id="btnBold" class="icon-btn" title="加粗 (Ctrl+B)">B</button>
+          <button id="btnTask" class="icon-btn" title="插入任务项">☑</button>
+          <button id="btnQuote" class="txt-btn" title="引用文档中选中的文本">引用</button>
+          <button id="btnWriteDoc" class="txt-btn" title="把当前清单写入文档选区">写入</button>
+        </div>
+      </div>
+
+      <textarea id="editor" spellcheck="false" placeholder="# 待办与记录&#10;&#10;## 待办&#10;- [ ] 在这里写下第一件事"></textarea>
+
+      <div id="preview" class="preview hidden">
+        <div class="preview-bar">
+          <div class="chips">
+            <button class="chip active" data-filter="all">全部</button>
+            <button class="chip" data-filter="todo">待办</button>
+            <button class="chip" data-filter="done">已完成</button>
+          </div>
+          <span id="taskStats" class="muted">0/0 完成</span>
+        </div>
+        <div id="previewBody" class="md-body filter-all"></div>
+      </div>
+    </section>
+
+    <!-- 历史 -->
+    <section id="viewHistory" class="view">
+      <div id="historyList" class="history-list"></div>
+      <div id="versionDetail" class="detail hidden">
+        <div class="detail-bar">
+          <button id="btnDetailBack" class="ghost">← 返回</button>
+          <span id="detailTitle" class="detail-title"></span>
+        </div>
+        <div id="detailMeta" class="detail-meta"></div>
+        <div id="detailCtx" class="detail-ctx hidden"></div>
+        <div id="detailDiff" class="diff"></div>
+        <div class="detail-actions">
+          <button id="btnRestore" class="primary">恢复为草稿</button>
+          <button id="btnCopyVersion" class="ghost">复制内容</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer id="commitBar" class="commit-bar">
+    <div class="commit-row">
+      <input id="commitMsg" type="text" placeholder="本次记录说明（可选）" autocomplete="off" />
+      <button id="btnContextToggle" class="ghost" title="附加文档上下文（可抓取选中文本）">上下文</button>
+    </div>
+    <div id="contextBox" class="context-box hidden">
+      <textarea id="contextText" placeholder="附在本次版本上的文档上下文…"></textarea>
+      <button id="btnCapture" class="ghost">抓取选中文本</button>
+    </div>
+    <div class="commit-row">
+      <span id="draftStats" class="muted">无改动</span>
+      <button id="btnCommit" class="primary" disabled>记录版本 (Ctrl+↵)</button>
+    </div>
+  </footer>
+
+  <!-- 设置 -->
+  <div id="settingsPanel" class="panel hidden">
+    <div class="panel-bar">
+      <strong>设置</strong>
+      <button id="btnCloseSettings" class="icon-btn" aria-label="关闭">✕</button>
+    </div>
+    <div class="panel-body">
+      <label class="field">
+        <span>存储位置</span>
+        <select id="storageSelect">
+          <option value="auto">自动（优先随文档，推荐）</option>
+          <option value="document">仅文档内（历史随文件走）</option>
+          <option value="browser">仅浏览器（本机）</option>
+        </select>
+      </label>
+      <p id="storageInfo" class="muted small"></p>
+
+      <label class="check">
+        <input id="optAutoStamp" type="checkbox" checked />
+        <span>完成时自动追加时间戳</span>
+      </label>
+
+      <label class="check">
+        <input id="optAutoOpen" type="checkbox" />
+        <span>打开此文件时自动展开面板</span>
+      </label>
+      <p id="optAutoOpenHint" class="muted small"></p>
+
+      <div class="panel-actions">
+        <button id="btnExportCurrent" class="ghost">导出当前清单 .md</button>
+        <button id="btnExportHistory" class="ghost">导出完整历史 .md</button>
+        <button id="btnImport" class="ghost">导入 .md 为草稿</button>
+        <input id="importFile" type="file" accept=".md,.markdown,.txt,text/markdown,text/plain" hidden />
+      </div>
+
+      <div class="panel-danger">
+        <button id="btnClearAll" class="danger">清空所有草稿与历史</button>
+      </div>
+
+      <div class="about muted small">
+        <p>轻量版本控制：每次“记录版本”生成一个快照，支持差异对比与恢复；数据默认随文档保存，也可切换为本机浏览器存储。</p>
+        <p>快捷键：<code>Ctrl/⌘+Enter</code> 记录版本 · <code>Ctrl/⌘+S</code> 记录版本 · <code>Ctrl/⌘+B</code> 加粗</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
