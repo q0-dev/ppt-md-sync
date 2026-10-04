@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { diffLines, diffStats, splitLines } from "../src/js/diff.js";
+import { diffLines, diffStats, splitLines } from "../src/taskpane/diff.js";
 
 test("splitLines 处理空文本、尾换行与空行", () => {
   assert.deepEqual(splitLines(""), []);

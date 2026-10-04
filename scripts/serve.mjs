@@ -10,6 +10,12 @@ import { fileURLToPath } from "node:url";
 const ROOT = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const PORT = Number(process.env.PORT || 3000);
 
+// 旧目录结构的页面路径（已附加的文档里可能还引用着它们）重定向到新位置。
+const LEGACY_REDIRECTS = new Map([
+  ["/src/taskpane.html", "/src/taskpane/taskpane.html"],
+  ["/src/commands.html", "/src/commands/commands.html"],
+]);
+
 const MIME = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
@@ -27,6 +33,11 @@ async function handler(req, res) {
   try {
     const url = new URL(req.url, "http://localhost");
     let pathname = decodeURIComponent(url.pathname);
+    const legacy = LEGACY_REDIRECTS.get(pathname);
+    if (legacy) {
+      res.writeHead(302, { Location: legacy }).end();
+      return;
+    }
     if (pathname.endsWith("/")) pathname += "index.html";
     const filePath = normalize(join(ROOT, pathname));
     if (filePath !== ROOT && !filePath.startsWith(ROOT + sep)) {
@@ -56,5 +67,5 @@ try {
 
 createServer(serverOptions, handler).listen(PORT, () => {
   console.log("\n  MD 待办 · 版本记录 — 开发服务器");
-  console.log(`  https://localhost:${PORT}/src/taskpane.html`);
+  console.log(`  https://localhost:${PORT}/src/taskpane/taskpane.html`);
 });

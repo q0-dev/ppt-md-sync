@@ -17,6 +17,6 @@ jobs:
       - run: npm test
       - name: 语法检查
         run: |
-          for f in src/js/*.js scripts/*.mjs tests/*.mjs; do
+          for f in src/taskpane/*.js scripts/*.mjs tests/*.mjs; do
             node --check "$f"
           done

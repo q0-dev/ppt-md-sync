@@ -13,7 +13,7 @@ import {
   normalizeStore,
   shortHash,
   storeBytes,
-} from "../src/js/store.js";
+} from "../src/taskpane/store.js";
 
 test("短指纹稳定且长度可控", () => {
   assert.equal(fnv1a("abc"), fnv1a("abc"));

@@ -8,9 +8,9 @@ const root = fileURLToPath(new URL("..", import.meta.url));
 const read = (p) => readFileSync(new URL(p, import.meta.url), "utf8");
 const exists = (p) => existsSync(new URL(p, import.meta.url));
 
-test("app.js 通过 $() 引用的 id 都存在于 taskpane.html", () => {
-  const html = read("../src/taskpane.html");
-  const js = read("../src/js/app.js");
+test("taskpane.js 通过 $() 引用的 id 都存在于 taskpane.html", () => {
+  const html = read("../src/taskpane/taskpane.html");
+  const js = read("../src/taskpane/taskpane.js");
   const htmlIds = new Set([...html.matchAll(/id="([^"]+)"/g)].map((m) => m[1]));
   const jsIds = [...js.matchAll(/\$\("([^"]+)"\)/g)].map((m) => m[1]);
   const missing = [...new Set(jsIds.filter((id) => !htmlIds.has(id)))];
@@ -19,11 +19,11 @@ test("app.js 通过 $() 引用的 id 都存在于 taskpane.html", () => {
 });
 
 test("taskpane.html 引用的脚本与样式文件存在", () => {
-  const html = read("../src/taskpane.html");
+  const html = read("../src/taskpane/taskpane.html");
   for (const m of html.matchAll(/(?:src|href)="([^"]+)"/g)) {
     const url = m[1];
     if (/^(https?:|data:|#)/.test(url)) continue;
-    assert.ok(exists(`../src/${url}`), `文件缺失: ${url}`);
+    assert.ok(exists(`../src/taskpane/${url}`), `文件缺失: ${url}`);
   }
 });
 

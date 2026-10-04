@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Node](https://img.shields.io/badge/node-%E2%89%A520-brightgreen)
 
-一个轻量的 Microsoft Office 任务窗格加载项（Word / Excel / PowerPoint）：**用 Markdown 随手记待办与完成事项，用「记录版本」保存快照**——可以对比差异、恢复历史，但没有分支、暂存区、远程仓库之类的负担，像是一个只保留"提交"的极简 git。
+一个轻量的 Microsoft Office 任务窗格加载项（Word / PowerPoint / Excel）：**用 Markdown 随手记待办与完成事项，用「记录版本」保存快照**——可以对比差异、恢复历史，但没有分支、暂存区、远程仓库之类的负担，像是一个只保留"提交"的极简 git。
 
 > 改完笔记点一下「记录版本 (Ctrl+Enter)」，就多一个带短指纹的线性快照；点开历史能看每一步的 +/- diff，也能一键恢复为草稿。
 
@@ -17,31 +17,44 @@
 
 ## 快速开始（Windows + 桌面版 Office）
 
-前置：Windows 上装有桌面版 Word / Excel / PowerPoint（Microsoft 365 或 Office 2016+，建议新版），Node.js ≥ 20。
+前置：Windows 上装有桌面版 Word / PowerPoint / Excel（Microsoft 365 或 Office 2016+，建议新版），Node.js ≥ 20。
+
+**日常使用只需要两件事**：
 
 ```bash
-npm install                  # 首次
-npm run debug                # 启动本地服务 + 注册加载项 + 打开 PowerPoint
-npm run register             # 只注册加载项、不打开应用：让插件常驻在每个 PPT 里
-npm run unregister           # 取消注册（插件从 Office 中消失）
-npm run debug:word           # 需要调试 Word 时
-npm run debug:excel          # 需要调试 Excel 时
-npm run debug:stop           # 结束调试并清理注册
+npm install          # 首次
+npm run register     # ① 注册到 Office：一次性，之后一直有效（直到 unregister / debug:stop）
+npm start            # ② 保持本地服务运行：用面板期间要一直开着（可改用 start-server.vbs 后台跑）
 ```
 
-上述命令只能在 Windows 上运行（需要写注册表并启动 Office）；WSL 里只能写代码、跑 `npm test`。只想单独起本地服务：`npm start` 或双击 `scripts/start-server.vbs`。
+然后打开文档 → **插入 → 加载项 → 开发者加载项 → 添加**（每个文件做一次）。
 
-### 让任意 PPT 都能用上插件
+**开发调试（可选）**：`debug` 系列是官方 `office-addin-debugging` 的一键流程，等于把上面两步外加"打开 Office"合在一起：
 
-1. 在 Windows 终端跑一次 `npm run register`（跑过一次 `npm run debug` 也会注册）：插件写入注册表后**常驻**，之后每个 PPT 的「开始」选项卡里都有「MD 记录」按钮，点一下即可打开面板。插件哪天消失（例如执行过 `npm run debug:stop`），重跑 `npm run register` 并重启 Office 即可。
-   - 找不到按钮时看「开始」选项卡，不要在「插入 → 获取加载项 / 我的加载项」里找——开发中的插件不会出现在商店入口。
-2. 自动展开是**按文件生效**的：第一次在某个 PPT 里打开面板时，插件会为该文件自动开启「打开此文件时自动展开面板」；**保存这个 PPT** 后，下次打开该文件面板就会自动出现（可在设置里关闭）。
-   - 任何 sideload 的加载项都做不到"所有 PPT 一律自动弹面板"——Office 的自动展开标记只认写在文件里的设置；能全局生效的只有管理员在 Microsoft 365 管理中心集中部署的事件激活，而那类代码又被限制为不能弹出 UI。因此本插件的策略是：**注册一次、处处可用；常用文件自动展开**。
-3. 面板内容依赖本地服务常开（否则按钮在、面板打不开）：双击 `scripts/start-server.vbs` 可后台无窗口启动；把它放进 Windows「启动」文件夹（`Win+R` 输入 `shell:startup`）即可开机自启。
+```bash
+npm run debug        # 启动服务 + 注册 + 打开 PowerPoint（自动带一个已装载插件的演示文稿）
+npm run debug:word   # 同上，打开 Word
+npm run debug:stop   # 结束调试：停服务并注销（之后需要重新 register）
+npm run unregister   # 只注销
+```
 
-### 「插入 → 获取加载项」里找不到它？
+上述命令需要写注册表并启动 Office，请在 **Windows** 终端里运行；WSL 里只能写代码、跑 `npm test`。本地服务本身是 `scripts/serve.mjs`（纯静态 HTTPS 服务），双击 `scripts/start-server.vbs` 可无窗口后台启动、放进启动文件夹还能开机自启。
 
-开发期的加载项不走「获取加载项」商店入口，`npm run register` / `npm run debug` 会直接把它注册到 Office，按钮出现在「开始」选项卡的「MD 记录」组里。若你的 Office 版本里连「获取加载项」按钮本身都没有（部分 Office 2016 / 本地化版本），也属正常——本项目的装载方式不依赖它。
+### 注册成功的样子
+
+`npm run register`（或 `npm run debug`）之后，在 Word / PowerPoint 里打开 **插入 → 加载项**（Word 里也叫「我的加载项」），应能看到 **开发者加载项 → MD 待办 · 版本记录**。能看到就说明注册与 manifest 没问题。
+
+## 怎么让插件出现在具体文档里
+
+Office 加载项是**文档级**装载的：注册只保证它在每个文档的加载项列表里可见，要让它真正运行（并在打开文件时自动展开面板），需要对这个文档做一次「插入」：
+
+1. 打开 Word / PowerPoint，点 **插入 → 加载项**（Word 里也叫「我的加载项」）；
+2. 在 **开发者加载项** 里选择「MD 待办 · 版本记录」→ 添加；
+3. 首次会弹一次信任提示；面板打开后保存文件，之后每次打开该文件都会自动展开。
+
+> **为什么不能「打开任意 PPT 就自动有插件」？** 按官方定义，autoopen 是文档级机制，必须逐文件写入引用（见 [Automatically open a task pane with a document](https://learn.microsoft.com/zh-cn/office/dev/add-ins/develop/automatically-open-a-task-pane-with-a-document)）。对"任意文档自动运行"只有 Microsoft 365 管理员在管理中心**集中部署**（事件激活）才支持，且事件激活被限制为不能弹出任务窗格 UI；Marketplace 分发的加载项也不支持 autoopen。所以本地开发版的正确姿势就是：**每个文件插入一次，之后一直自动展开**。
+
+面板内容依赖本地服务常开（否则按钮在、面板打不开）：双击 `scripts/start-server.vbs` 可后台无窗口启动；把它放进 Windows「启动」文件夹（`Win+R` 输入 `shell:startup`）即可开机自启。
 
 ## 使用
 
@@ -68,37 +81,41 @@ npm test          # 单元测试（Node 内置 test runner，无需联网）
 npm run validate  # 用微软官方服务校验 manifest.xml（需要联网）
 ```
 
-改完代码后，在 Office 里重新打开任务窗格（或右键「重新加载」）即可看到最新版；改 `manifest.xml` 后需要重启 Office（必要时重跑一次 `npm run register`）。
+改完代码后在 Office 里重新打开任务窗格（或右键「重新加载」）即可看到最新版；改 `manifest.xml` 后需要重启 Office（必要时重跑一次 `npm run register`）。
 
-### 目录结构
+目录结构（Yeoman 风格、纯静态无打包）：
 
 ```
-manifest.xml            # 三合一加载项清单（URL 指向本地服务）
-src/taskpane.html       # 任务窗格页面
-src/commands.html       # 功能命令页
-src/css/taskpane.css    # 样式（含深色模式）
-src/js/app.js           # 主程序：界面、快捷键、提交流程
-src/js/md.js            # 极简 Markdown 渲染 + 任务操作
-src/js/store.js         # 线性版本仓库：快照、短指纹、导出
-src/js/diff.js          # 行级 diff（LCS）
-src/js/office.js        # Office 适配层（宿主探测、选中读写、文档存储）
-scripts/serve.mjs       # 本地 HTTPS 服务（office-addin-dev-certs 证书）
-scripts/start-server.vbs# 后台启动服务的脚本（可用于开机自启）
-tests/                  # node:test 单元测试
+manifest.xml                 # 三合一加载项清单（开发期 URL 指向本地服务）
+src/
+  commands/commands.html     # 功能命令页（VersionOverrides 必需的 FunctionFile）
+  taskpane/
+    taskpane.html            # 任务窗格页面
+    taskpane.css             # 样式（含深色模式）
+    taskpane.js              # 主程序：界面、快捷键、提交流程
+    md.js                    # 极简 Markdown 渲染 + 任务操作
+    store.js                 # 线性版本仓库：快照、短指纹、导出
+    diff.js                  # 行级 diff（LCS）
+    office.js                # Office 适配层（宿主探测、选中读写、文档存储）
+scripts/
+  serve.mjs                  # 本地 HTTPS 服务（office-addin-dev-certs 证书）
+  start-server.vbs           # 后台启动服务（可用于开机自启）
+tests/                       # node:test 单元测试
 ```
 
 ### 在 WSL 里开发
 
-可以在 WSL 里写代码、跑 `npm test`，但 **Office 只能装载 Windows 侧的加载项**：把项目放到 Windows 盘（例如 `D:\QL\ppt-md`），在 Windows 终端里执行 `npm install` 与 `npm run register`（或 `npm run debug`）。WSL 改完代码后同步到该目录即可，无需重装依赖。
+可以在 WSL 里写代码、跑 `npm test`，但 **Office 只能装载 Windows 侧的加载项**：把项目放到 Windows 盘（例如 `D:\projects\ppt-md`），在 Windows 终端里执行 `npm install` 与 `npm run register`（或 `npm run debug`）。WSL 改完代码后同步到该目录即可，无需重装依赖；`npm start` 在 WSL 与 Windows 里都能提供 https://localhost:3000。
 
 ## 常见问题
 
+- **注册后在加载项列表里找不到它**：确认 `npm run register` 没有报错，且没有执行过 `npm run debug:stop` / `npm run unregister`；然后完全重启 Office。
+- **对话框能看见，但打开文档没出现按钮**：正常——注册只负责"可见"，还需要在加载项对话框里插入一次（见上文）。
 - **任务窗格打不开 / 一直转圈**：本地服务没在跑。执行 `npm start` 或双击 `scripts/start-server.vbs`。
-- **打开别的 PPT 找不到插件**：在 Windows 终端执行 `npm run register`，然后完全退出并重启 PowerPoint。插件在「开始」选项卡的「MD 记录」组；注册时 PowerPoint 如果开着，必须重启才能看到。也确认没有执行过 `npm run debug:stop`（它会注销插件）。
-- **保存过文件，下次打开仍不自动展开面板**：勾选设置里的「打开此文件时自动展开面板」，保存文件后再重开；注意该开关按文件生效，换一个 PPT 需要重新打开一次面板并保存。
+- **保存过文件，下次打开仍不自动展开面板**：勾选设置里的「打开此文件时自动展开面板」，保存文件后再重开；该开关按文件生效。
 - **面板提示证书不受信任**：首次运行 `npm run debug` 会自动安装并信任本地开发证书；若曾拒绝，执行 `npx office-addin-dev-certs install` 重新安装。
-- **端口 3000 被占用**：`scripts/serve.mjs` 支持 `PORT` 环境变量（默认 3000）；换端口需同步改 `manifest.xml` 里所有 `https://localhost:3000`、`package.json` 的 `dev_server_port`，再用 `PORT=3001 npm start` 启动。
-- **想彻底清掉注册**：`npm run unregister`（或 `npm run debug:stop`）。
+- **端口 3000 被占用**：`scripts/serve.mjs` 支持 `PORT` 环境变量（默认 3000）；换端口需同步改 `manifest.xml` 里的 `https://localhost:3000` 与 `package.json` 的 `dev_server_port`。
+- **想彻底清掉注册**：`npm run unregister`。
 
 ## License
 

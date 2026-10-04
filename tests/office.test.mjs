@@ -16,7 +16,7 @@ import {
   settingsSupported,
   writeDocumentSetting,
   writeToSelection,
-} from "../src/js/office.js";
+} from "../src/taskpane/office.js";
 
 test("非 Office 环境降级为独立窗口并拒绝文档操作", async () => {
   delete globalThis.Office;

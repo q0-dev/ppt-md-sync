@@ -10,7 +10,7 @@ import {
   renderMarkdown,
   taskInfo,
   toggleTaskLine,
-} from "../src/js/md.js";
+} from "../src/taskpane/md.js";
 
 const SRC = "# 标题\n\n## 待办\n- [ ] 事项A\n- [x] 事项B\n\n## 已完成\n";
 
